@@ -4,11 +4,11 @@ contents
 3. 顺序容器操作
 4. vector对象是如何增长的
 5. 额外的string操作
-6. 容器适配器
 
 1. 顺序容器概述
 顺序容器：元素在容器中的顺序与其加入容器时的位置相对应。
 关联容器：元素在容器中的位置由元素相关联的关键字值决定。（TODO）
+
 1.1 顺序容器的类型
 vector：可变大小数组。随机访问，尾部插入删除较快。
 deque：双端队列。随机访问，头尾插入删除较快。
@@ -18,6 +18,7 @@ array：固定大小数组。随机访问，不能添加或删除元素。
 string：与vector相似的容器，但专门用来保存字符。随机访问，尾部插入删除较快。
 *string和vector中的元素都是连续储存，因此每一次在序列中间位置删除或插入新元素之后都要移动该元素之后的所有元素（耗时）。
 *list和forward_list设计目的是使在容器中的任何位置插入或删除元素都很快速，代价是不支持元素的随机访问，访问元素需要遍历整个容器。
+
 1.2 顺序容器类型的选择
 一般没有更好的理由，选择vector；
 程序空间小元素多，额外空间开销很重要则不选list和forward_list；
@@ -26,3 +27,195 @@ string：与vector相似的容器，但专门用来保存字符。随机访问�
 *在不确定使用哪种容器，那么可以在程序中只使用vector和list的公共操作：使用迭代器，不使用下标操作，避免随机访问。
 
 2. 容器库概述
+2.1 定义和初始化
+
+定义
+每个容器都定义在一个头文件中，文件名与类型名相同。
+#include <vector>
+#include<list>
+#include<deque>
+容器均被定义为模板类。例如，对vector，我们必须提供额外的信息来生成特定的容器类型。
+vector<int> a;
+list<double> b;
+//在旧的编译器中需要在两者之间添加空格，如下所示
+vector< vector<string> > lines; // vector的vector 
+
+初始化
+所有容器都定义了默认构造函数，可以用默认构造函数来初始化一个空的容器对象
+vector<int> c;
+此外，还有一些可提供参数的构造函数
+C<T> c; 默认构造函数，构造空容器；
+C c1 (c2); 构造c2的拷贝c1
+C c (b, e); 构造c，将迭代器b和e指定范围内的元素拷贝到c
+C c {a, b, c…}; 列表初始化c
+
+容器的其它操作
+类型别名
+iterator：此容器的迭代器类型
+const_iterator：可以读取元素，但是不能修改元素的迭代器类型
+size_type：无符号整型，足够保存此种容器类型最大可能容器的大小
+difference_type：带符号整型，足够保存两个迭代器之间的距离
+value_type：元素类型
+reference：元素的左值类型
+const_reference：元素的const左值类型
+
+赋值与swap
+c1 = c2; 将c1中的元素替换为c2中的元素
+c1 = {a, b, c…}; 将c1中的元素替换为列表中的元素
+a.swap(b); 交换a和b的元素
+swap(a,b); 同上
+assign仅仅适用于顺序容器
+seq.assign(b, e); 将seq中的元素替换为迭代器b和e所表示范围中的元素。迭代器不能指向seq中的元素
+seq.assign(il); 将seq中的元素替换为初始化列表il中的元素
+seq.assign(n, t); 将seq中的元素替换为n个值为t的元素
+
+大小
+c.size(); c中的元素数目（不支持forward_list）
+c.max_size(); c可保存的最大数目
+c.empty(); c是否为空
+
+添加/删除元素（不适用于array）
+c.insert(args); 将args中的元素拷贝到c
+c.emplace(inits); 使用inits构造c中的一个元素
+c.erase(args); 删除args指定的元素
+c.clear(); 删除c中的所有元素，返回void
+
+关系运算
+==  != 所有容器都支持
+<, <=, >, >= 无序容器不支持
+
+获取迭代器
+c.begin(), c.end() 返回指向c的首元素和尾元素之后的迭代器
+c.cbegin(), c.cend() 返回const_iterator
+
+反向容器的额外成员
+reverse_iterator 按逆序寻址元素的迭代器
+const_reverse_iterator 不能修改元素的逆序迭代器
+c.rbegin(), c.rend() 返回指向c的尾元素和首元素的迭代器
+c.crbegin(), c.crend() 返回const_reverse_iterator
+
+2.2 迭代器
+迭代器的范围是左闭合区间，end()返回的是尾元素之后的那一个元素。[begin(), end())
+*如果begin与end相等，则范围为空
+*如果begin与end不等，则至少包含一个元素，且begin指向该范围的第一个元素
+*可以对begin递增若干次，使得begin=end
+
+3 顺序容器操作
+3.1 向顺序容器中添加元素
+*这些操作不会改变容器的大小
+*array不支持这些操作
+*forward_list有自己专门版本的insert和emplace 
+*vector和string不支持push_front和emplace_front 
+c.push_back(t) 在c的尾部创建一个值为t或args创建的元素，返回void 
+c.emplace_back(args) 
+c.push_front(t) 在c头部创建一个值为t或由args创建的元素，返回void 
+c.emplace_front(args) 
+c.insert(p, t) 在迭代器p指向的元素之前创建一个值为t或者由args创建的元素。返回指向新添加元素的迭代器 
+c.emplace(p, args) 
+c.insert(p, n, t) 在迭代器p所指向的元素之前插入n个值为t的元素。返回指向新添加的第一元素的迭代器；若n为0，返回p 
+c.insert(p, b, e) 将迭代器b和e所指范围之间的元素插入到迭代器p所指元素之前。b和e不能指向c中的元素。返回指向新添加的第一个元素的迭代器；若范围为空，则返回p 
+c.insert(p, il) il是一个花括号包围的元素值列表。将这些给定值插入到迭代器p所指向的元素之前。返回指向新添加的第一个元素的迭代器；若列表为空，则返回p 
+*向一个vector、string或deque插入元素会使所有指向容器的迭代器、引用和指针失效。
+*容器元素是对象的拷贝值，不是对象本身。对容器中元素进行改变不会对原始的对象造成影响，反之亦然。
+
+3.2 访问元素
+*at和下标操作只适用于string、vector、deque和array
+*back不适用于forward_list
+c.back() 返回c中尾元素的引用。若c为空，函数行为未定义
+c.front() 返回c中头元素的引用。若c为空，函数行为未定义
+c[n] 返回c中下标为n元素的引用，n是一个无符号整数。若n>=c.size()，则函数行为未定义
+c.at(n) 返回下标为n的元素的引用。若下标越界，则抛出out_of_rang的异常
+*容器中访问元素的成员函数返回的都是引用
+
+3.3 删除元素
+*这些操作会改变容器的大小，所以不适用于array
+*forward_list由特殊版本的erase
+*forward_list不支持pop_back；vector和string不支持pop_front
+c.pop_back() 删除c中的尾元素。若c为空，则函数行为未定义。函数返回void
+c.pop_front() 删除c中的首元素。若c为空，则函数行为未定义，函数返回void
+c.erase(p) 删除迭代器p所指的元素，返回一个指向被删元素之后元素的迭代器，若p指向尾元素，则返回尾后迭代器。若p是尾后迭代器，则函数行为未定义
+c.erase(b, e) 删除迭代器b和e所指定范围内的元素。返回一个指向最后一个被删元素之后元素的迭代器，若e本身就是尾后迭代器，则函数也返回尾后迭代器
+c.clear() 删除c中的所有元素，返回void
+*删除deque中除首尾位置之外的任何元素都会使所有迭代器、引用和指针失效
+*指向vector或string中删除点之后位置的迭代器、引用和指针都会失效
+*删除元素的成员函数并不检查其参数，因此在删除元素之前，必须保证它是存在的
+
+3.4 特殊的forward_list操作
+当删除或插入一个元素时，删除或添加的元素之前的那个元素的后继会发生改变。为了添加或删除一个元素，我们需要访问其前驱，以改变前驱的链接。由于forward_list是单向链表，因此，在forward_list中是通过改变给定元素之后的元素来完成的。
+lst.before_begin() 返回指向链表首元素之前不存在的元素的迭代器，此迭代器不能解引用。cbefore_begin返回一个const_iterator
+lst.cbefore_begin() 
+lst.insert_after(p,t) 在迭代器p之后的位置插入元素。t是一个对象，n是数量，b和e是表示范围的迭代器。il是一个花括号列表。返回一个指向最后一个插入元素的迭代器。如果范围为空，返回p。若p为尾后迭代器，则函数未定义。
+lst.insert_after(p,n,t) 
+lst.insert_after(p,b,e) 
+lst.insert_after(p,il) 
+emplace_after(p,args) 使用args在p指定的位置之后创建一个元素。返回一个指向这个新元素的迭代器。
+lst.erase_after(p) 删除p所指向的元素位置之后的元素，或删除从b之后（但不包含b）e之间的元素。返回一个指向被删除元素之后元素的迭代器，若不存在这样的元素，则返回尾后迭代器。
+lst.erase_after(b,e) 
+
+3.5 改变容器的大小
+*resize不适用于array
+c.resize(n) 调整c的大小为n个元素，若n<c.size()，则多出的元素将被舍弃。若必须添加新元素，则必须对新元素进行初始化
+c.resize(n,t) 调整c的大小为n个元素。任何新添加的元素都初始化为t。
+*如果resize缩小容器，则指向被删除元素的迭代器、引用和指针都会失效
+*对vector、string或deque进行resize可能导致迭代器、指针和引用失效
+
+4 vector对象是如何增长的
+为了减少重新分配内存空间所带来的时间消耗，vector和string的实现通常会分配比新的空间需求更大的内存空间，以减少重新分配内存空间所需要的时间。
+管理容量的成员函数
+*shrink_to_fit只适用于vector、string和deque
+*capacity和reserve只适用于vector和string
+c.shrink_to_fit() 请将capacity（）减少为于size（）相同的大小
+c.capacity() 不重新分配内存空间的话，c可以保存多少元素
+c.reserve(n) 分配至少能容纳n个元素的内存空间
+*reserve并不会改变容器中元素的数量，它仅仅影响vector预先分配多大的内存空间
+*调用reserve永远不会减少容器所占用的内存空间
+*resize只改变容器中元素的数目而不是容器的容量
+*shrink_to_fit并不保证退回多余的空间，这只是一种请求
+
+5 string操作
+构造string
+string s(cp, n) s是cp指向的数组中前n个字符的拷贝。该数组至少包含n个字符
+string s(s2, pos2) s是string s2中从下标pos2开始的字符的拷贝。若pos2>s2.size()，构造函数未定义
+string s(s2, pos2, len2) s是从string s2中从下标pos2开始len2个字符的拷贝。不管len2是多少，构造函数最多拷贝s2.size()-pos2个字符
+
+substr操作
+s.substr(pos, n) 返回一个string，包含s中从pos开始的n个字符的拷贝。pos的默认值为0。n的默认值为s.size()-pos，即拷贝从pos开始的所有字符
+
+修改string的其它操作
+s.insert(pos, args) 在pos之前插入args指定的字符。pos可以是一个下标或者一个迭代器。接受下标的返回一个指向s的引用，接受迭代器的返回指向第一个插入字符的迭代器
+s.erase(pos, len) 删除从位置pos开始的len个字符。如果len省略，则删除pos开始至s结尾的所有字符。返回一个s的引用
+s.assign(args) 将s中的字符替换为args指定的字符。返回一个s的引用
+s.append(args) 将args追加到s。返回一个s的引用
+s.replace(range, args) 删除s中范围range内的字符，替换为args指定的字符。range或者是一个下标和一个长度，或者是一对指向s的迭代器。返回一个s的引用
+args的形式
+str 字符串
+str，pos，len  str中从pos开始的len个字符
+cp，len 从cp指向的字符数组的前len个字符
+cp cp指向的以空字符结尾的字符数组
+n，c n个字符c
+b，e 迭代器b和e指定范围内的字符
+初始化列表 花括号包围的，以逗号分隔的字符列表
+
+string搜索操作
+s.find(args) 查找s中args第一次出现的位置
+s.rfind(args) 查找s中args最后一次出现的位置
+s.find_first_of(args) 在s中查找args中任何一个字符第一次出现的位置
+s.find_last_of(args) 在s中查找args中任何一个字符最后一次出现的位置
+s.find_first_not_of(args) 在s中查找第一个不在args中的字符
+s.find_last_not_of(args) 在s中查找最后一个不在args中的字符
+args的形式
+c, pos 从s中位置pos开始查找字符c。pos默认为0
+s2, pos 从s中位置pos开始查找字符串s2。pos默认为0
+cp, pos 从s中位置pos开始查找指针cp指向的以空字符结尾的c风格字符串。pos默认为0
+cp, pos, n 从s中位置pos开始查找指针cp指向的数组的前n个字符。pos和n无默认值
+
+string比较操作
+s.compare(args)
+args的形式
+s2 比较s和s2
+pos1, n1, s2 将s中从pos1开始的n1个字符与s2进行比较
+pos1, n1, s2, pos2, n2 将s中从pos1开始的n1个字符与s2中pos2开始的n2个字符进行比较
+cp 比较s与cp所指向的以空字符结尾的字符数组
+pos1, n1, cp 将s中从pos1开始的n1个字符与cp所指向的以空字符结尾的字符数组进行比较
+pos1, n1, cp, n2 将s中从pos1开始的n1个字符与cp所指向的地址开始的n2个字符进行比较
+
